@@ -18,11 +18,23 @@ class BookApiTests(APITestCase):
         response = self.client.get('/api/books/')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data['count'], 1)
+        self.assertIsNone(response.data['next'])
+        self.assertIsNone(response.data['previous'])
         self.assertEqual(
-            set(response.data[0].keys()),
+            set(response.data['results'][0].keys()),
             {'id', 'title', 'author', 'isbn'},
         )
+
+    def test_list_endpoint_is_paginated(self):
+        BookFactory.create_batch(3)
+
+        response = self.client.get('/api/books/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertIsNotNone(response.data['next'])
 
     def test_create_endpoint_persists_book(self):
         payload = {
