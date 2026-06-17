@@ -1,4 +1,6 @@
+from django.contrib.auth import get_user_model
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from apps.books.factories import BookFactory
@@ -6,6 +8,21 @@ from apps.books.models import Book
 
 
 class BookApiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='api-user',
+            password='strong-password-123',
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+
+    def test_list_endpoint_requires_authentication(self):
+        self.client.credentials()
+
+        response = self.client.get('/api/books/')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_list_endpoint_returns_compact_payload(self):
         BookFactory(
             title='Refactoring',
@@ -94,3 +111,18 @@ class BookApiTests(APITestCase):
 
         book.refresh_from_db()
         self.assertIsNone(book.pages)
+
+    def test_auth_token_endpoint_returns_token_for_valid_credentials(self):
+        self.client.credentials()
+
+        response = self.client.post(
+            '/api/auth/token/',
+            {
+                'username': 'api-user',
+                'password': 'strong-password-123',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('token', response.data)
