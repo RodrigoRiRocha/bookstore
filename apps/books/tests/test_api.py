@@ -42,3 +42,43 @@ class BookApiTests(APITestCase):
         created = Book.objects.first()
         self.assertEqual(created.title, 'The Pragmatic Programmer')
         self.assertEqual(created.isbn, '9780201616224')
+
+    def test_retrieve_endpoint_returns_full_payload(self):
+        book = BookFactory(
+            title='Design Patterns',
+            author='Erich Gamma',
+            summary='Classic object-oriented design catalog.',
+            isbn='9780201633610',
+            pages=395,
+        )
+
+        response = self.client.get(f'/api/books/{book.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            set(response.data.keys()),
+            {
+                'id',
+                'title',
+                'author',
+                'summary',
+                'isbn',
+                'pages',
+                'published_date',
+                'created_at',
+            },
+        )
+
+    def test_partial_update_allows_nullable_pages(self):
+        book = BookFactory(pages=240)
+
+        response = self.client.patch(
+            f'/api/books/{book.id}/',
+            {'pages': None},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        book.refresh_from_db()
+        self.assertIsNone(book.pages)
