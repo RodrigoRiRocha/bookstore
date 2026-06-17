@@ -56,3 +56,16 @@ class BookSerializerTests(TestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn('pages', serializer.errors)
+
+    def test_pages_can_be_null(self):
+        serializer = BookSerializer(
+            data={
+                'title': 'Domain-Driven Design',
+                'author': 'Eric Evans',
+                'isbn': '9780321125217',
+                'pages': None,
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertIsNone(serializer.validated_data['pages'])
